@@ -65,6 +65,32 @@ export class HyperMediaFoobar extends EventEmitter {
     })
   }
 
+  toggleShuffle () {
+    return this.getStatus().then(status => new Promise((resolve, reject) => {
+      this.sendCommand('PlaybackOrder', { param1: status.shuffle ? 0 : 3 }, (error, response, body) => {
+        if (error) {
+          reject(error)
+          return
+        }
+
+        resolve(this.getStatus())
+      })
+    }))
+  }
+
+  toggleRepeat () {
+    return this.getStatus().then(status => new Promise((resolve, reject) => {
+      this.sendCommand('PlaybackOrder', { param1: status.repeat === 'all' ? 2 : (status.repeat === 'one' ? 0 : 1) }, (error, response, body) => {
+        if (error) {
+          reject(error)
+          return
+        }
+
+        resolve(this.getStatus())
+      })
+    }))
+  }
+
   // Activates the player, enabling it to emit events.
   activate () {
     this.eventPumpHandle = setInterval(() => this.eventPump(), 500)
@@ -80,14 +106,18 @@ export class HyperMediaFoobar extends EventEmitter {
   }
 
   // Send a request to the foobar-httpcontrol component with the specified command and handler.
-  sendCommand (cmd, handler) {
+  sendCommand (cmd, args, handler) {
+    if (args instanceof Function) {
+      return this.sendCommand(cmd, {}, args)
+    }
+
     request({
       method: 'GET',
       url: this.baseUrl,
-      qs: {
+      qs: Object.assign(args, {
         cmd,
         param3: 'NoResponse'
-      },
+      }),
       headers: {
         'cache-control': 'no-cache'
       }
@@ -124,6 +154,8 @@ export class HyperMediaFoobar extends EventEmitter {
       state: (!!Number(body.isPaused) && 'paused') || (!!Number(body.isPlaying) && 'playing') || 'stopped',
       volume: Number(body.volume) / 100,
       progress: body.itemPlayingPos * 1000,
+      shuffle: Number(body.playbackOrder) >= 3,
+      repeat: Number(body.playbackOrder) === 1 ? 'all' : (Number(body.playbackOrder) === 2 ? 'one' : 'none'),
       track: (track && {
         name: track.t,
         artist: track.a,
