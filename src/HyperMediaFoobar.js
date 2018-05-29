@@ -32,7 +32,7 @@ export class HyperMediaFoobar extends EventEmitter {
           return
         }
 
-        resolve(this.getStatus())
+        resolve(this.getStatus().then(x => x.status))
       })
     })
   }
@@ -46,7 +46,7 @@ export class HyperMediaFoobar extends EventEmitter {
           return
         }
 
-        resolve(this.getStatus())
+        resolve(this.getStatus().then(x => x.status))
       })
     })
   }
@@ -60,7 +60,7 @@ export class HyperMediaFoobar extends EventEmitter {
           return
         }
 
-        resolve(this.getStatus())
+        resolve(this.getStatus().then(x => x.status))
       })
     })
   }
@@ -73,7 +73,7 @@ export class HyperMediaFoobar extends EventEmitter {
           return
         }
 
-        resolve(this.getStatus())
+        resolve(this.getStatus().then(x => x.status))
       })
     }))
   }
@@ -86,7 +86,7 @@ export class HyperMediaFoobar extends EventEmitter {
           return
         }
 
-        resolve(this.getStatus())
+        resolve(this.getStatus().then(x => x.status))
       })
     }))
   }
@@ -102,7 +102,10 @@ export class HyperMediaFoobar extends EventEmitter {
   }
 
   eventPump () {
-    this.getStatus().then(status => this.emit('status', status))
+    this.getStatus().then(({status, playlist}) => {
+      this.emit('status', status)
+      this.emit('playlist', playlist)
+    })
   }
 
   // Send a request to the foobar-httpcontrol component with the specified command and handler.
@@ -164,6 +167,11 @@ export class HyperMediaFoobar extends EventEmitter {
       }) || {}
     }
 
-    return status
+    var playlist = body.playlist.map((x, index) => ({
+      name: x.t,
+      artist: x.a,
+      isPlaying: index === (Number(body.playlistItemsCount) <= Number(body.playlistItemsPerPage) ? Number(body.playingItem) : Number(body.playingItem) - (Number(body.playlistPage) - 1) * Number(body.playlistItemsPerPage))
+    }))
+    return { status, playlist }
   }
 }
